@@ -134,35 +134,43 @@ readline("press return to continue ...");
 
 print("HARsubset");
 ## extract from HARfullset just the essential columns
-## the XYZ total body acceleration means and standard deviations are in the first 6 positions
-## select also the last four columns (562-565)
-HARsubset <- HARfullset[, c(1:6, 562:565)];
+## find all columns that have "mean" or "std" in their names
+## select also the last four columns (562-565) which have y and subject information
+HARsubset <- data.frame(
+        select(HARfullset, matches("mean|std")),
+        HARfullset[, 562:565]
+);
+
 print(dim(HARsubset));
 readline("press return to continue ...");
 
-## the first six columns in HARsubset should probably be set as numeric and the last four as factors
-for (i in 1:6) {
+## the numeric float columns in HARsubset should be set as numeric and the last four as factors
+for (i in 1:86) {
         HARsubset[,i] <- as.numeric(HARsubset[,i]);
 }
-for (i in 7:10) {
+for (i in 87:90) {
         HARsubset[,i] <- factor(HARsubset[,i]);
 }
 
-## the first six column names could be made shorter
-names(HARsubset) <- sub("tBody", "", names(HARsubset));
-names(HARsubset) <- gsub("[/.]+", "_", names(HARsubset));
+## the first six column names could be made shorter -- skip this!
+## names(HARsubset) <- sub("tBody", "", names(HARsubset));
+## names(HARsubset) <- gsub("[/.]+", "_", names(HARsubset));
 
 print("HARsummary");
 ## SUMMARIZE BY ACTIVITY AND SUBJECT (in bold because this is the last task!)
-HARsummary <- summarize(group_by(HARsubset, activityName, subjectID),
-        Acc_mean_X = mean(Acc_mean_X), Acc_mean_Y = mean(Acc_mean_Y), Acc_mean_Z = mean(Acc_mean_Z),
-        Acc_std_X = mean(Acc_std_X), Acc_std_Y = mean(Acc_std_Y), Acc_std_Z = mean(Acc_std_Z));
+
+HARsummary <- HARsubset %>% group_by(activityName, subjectID) %>%
+        summarize_each(funs(mean), matches("mean|std"));
 print(dim(HARsummary));
 readline("press return to continue ...");
 
-## dim(HARsummary) is only 35 8, 35 seems low for distint combinations of activity and subject
+## dim(HARsummary) is 35 88
+## NOTE: 35 rows seems low for distint combinations of activity and subject
 ## a weakness of the data that for most subjects there is data for only one activity?
+## NOTE: not sure how useful this is taking the mean of a mean, and the mean of a std (?)
 
 write.table(HARsummary, file="HARsummary.txt", row.names=FALSE);
+write.table(names(HARsummary), file="HARsummaryNames.txt", row.names=FALSE);
+write.table(names(HARsubset), file="HARsubsetNames.txt", row.names=FALSE);
 
 end
